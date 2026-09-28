@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}System Health & Settings{% endblock %}
+
+{% block content %}
+<div class="console-hero">
+  <div class="hero-tag"><i class="fa-solid fa-sliders"></i> WORKSTATION DIAGNOSTICS</div>
+  <h1 class="hero-title">System Health & Forensic Parser Diagnostics</h1>
+  <p style="color:var(--text-muted); font-size:13px; margin-top:4px;">
+    Workstation operational status, database storage metrics, and modular browser adapter states.
+  </p>
+</div>
+
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+  <!-- Left Panel: Storage & Environment -->
+  <div class="glass-panel" style="padding:20px;">
+    <div style="font-weight:700; font-size:15px; color:#fff; margin-bottom:16px;">
+      <i class="fa-solid fa-hard-drive" style="color:var(--accent-cyan); margin-right:8px;"></i> Storage & Workspaces
+    </div>
+
+    <div class="meta-group">
+      <div class="meta-row"><span class="meta-key">Application:</span><span class="meta-val">{{ health.app_name }} v{{ health.app_version }}</span></div>
+      <div class="meta-row"><span class="meta-key">Python Engine:</span><span class="meta-val">Python {{ health.python_version }}</span></div>
+      <div class="meta-row"><span class="meta-key">Database Store:</span><span class="meta-val">{{ health.database_uri }}</span></div>
+      <div class="meta-row"><span class="meta-key">Disk Space Free:</span><span class="meta-val" style="color:var(--accent-green)">{{ health.disk_free_gb }} GB / {{ health.disk_total_gb }} GB</span></div>
+      <div class="meta-row"><span class="meta-key">Cases Directory:</span><span class="meta-val" style="font-size:11px;">{{ health.cases_dir }}</span></div>
+      <div class="meta-row"><span class="meta-key">Evidence Workspace:</span><span class="meta-val" style="font-size:11px;">{{ health.evidence_dir }}</span></div>
+      <div class="meta-row"><span class="meta-key">Reports Workspace:</span><span class="meta-val" style="font-size:11px;">{{ health.reports_dir }}</span></div>
+    </div>
+  </div>
+
+  <!-- Right Panel: Active Browser Parsers -->
+  <div class="glass-panel" style="padding:20px;">
+    <div style="font-weight:700; font-size:15px; color:#fff; margin-bottom:16px;">
+      <i class="fa-solid fa-code-branch" style="color:var(--accent-purple); margin-right:8px;"></i> Modular Browser Adapters
+    </div>
+
+    <div class="table-responsive">
+      <table class="forensic-table">
+        <thead>
+          <tr>
+            <th>Browser Target</th>
+            <th>Parser Class</th>
+            <th>Version</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in health.parsers %}
+          <tr>
+            <td style="font-weight:600;">{{ p.browser }}</td>
+            <td class="mono-cell" style="font-size:11px;">{{ p.class }}</td>
+            <td class="mono-cell">{{ p.version }}</td>
+            <td><span class="status-pill pill-success">{{ p.status }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div style="margin-top:20px; padding:12px; background:var(--bg-surface); border-radius:6px; font-size:12px; color:var(--text-dim);">
+      <b>Extensibility Notice:</b> Additional browser adapters (e.g. Brave, Opera, Vivaldi, Safari on macOS) can be integrated by subclassing <code>BaseBrowserAdapter</code> in <code>app/browser_adapters/</code>.
+    </div>
+  </div>
+</div>
+{% endblock %}

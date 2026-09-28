@@ -1,0 +1,14 @@
+{
+  "account_info": [
+    {
+      "email": "investigation.sample@corp.local",
+      "full_name": "Sample Subject"
+    }
+  ],
+  "download": {
+    "default_directory": "C:\\Users\\User\\Downloads"
+  },
+  "profile": {
+    "name": "Default"
+  }
+}

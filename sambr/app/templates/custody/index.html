@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Chain of Custody - {{ case.case_number }}{% endblock %}
+
+{% block content %}
+<div class="console-hero">
+  <div class="hero-tag"><i class="fa-solid fa-link"></i> FORENSIC CHAIN OF CUSTODY</div>
+  <h1 class="hero-title">Immutable Evidence Custody Ledger</h1>
+  <p style="color:var(--text-muted); font-size:13px; margin-top:4px;">
+    Case: <b style="color:#fff;">{{ case.case_number }}</b> • Legally defensible, append-only custody event provenance.
+  </p>
+</div>
+
+<div class="glass-panel">
+  <div class="glass-header">
+    <span><i class="fa-solid fa-file-signature" style="color:var(--accent-green); margin-right:8px;"></i> Custody Event Ledger ({{ events | length }} Records)</span>
+    <span class="status-pill pill-success">NIST SP 800-86 Compliant</span>
+  </div>
+  <div class="table-responsive">
+    <table class="forensic-table">
+      <thead>
+        <tr>
+          <th>Custody ID</th>
+          <th>Timestamp (UTC)</th>
+          <th>Action</th>
+          <th>Authorized Actor</th>
+          <th>Cryptographic SHA-256 Hash</th>
+          <th>Event Description</th>
+          <th>System Host</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ev in events %}
+        <tr>
+          <td class="mono-cell">#CUST-{{ ev.id }}</td>
+          <td class="mono-cell" style="font-size:11px; color:var(--accent-cyan);">
+            {{ ev.timestamp | format_utc }}
+          </td>
+          <td>
+            <span class="status-pill {% if ev.action == 'IMPORTED' %}pill-info{% elif ev.action == 'HASHED' or ev.action == 'VERIFIED' %}pill-success{% elif ev.action == 'PROCESSED' %}pill-purple{% else %}pill-warning{% endif %}">
+              {{ ev.action }}
+            </span>
+          </td>
+          <td style="font-weight:600;">{{ ev.actor }}</td>
+          <td class="mono-cell" style="font-size:11px;">
+            {% if ev.hash_value %}
+              <span title="{{ ev.hash_value }}" style="color:var(--accent-cyan);">
+                {{ ev.hash_value[:16] }}...{{ ev.hash_value[-10:] }}
+              </span>
+            {% else %}
+              <span style="color:var(--text-dim);">N/A</span>
+            {% endif %}
+          </td>
+          <td style="font-size:12px; max-width:320px;">{{ ev.description }}</td>
+          <td style="font-size:11px; color:var(--text-dim);">{{ ev.system_info }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" style="text-align:center; padding:30px; color:var(--text-dim);">No custody events logged for this case.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

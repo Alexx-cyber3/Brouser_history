@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}Evidence Search - {{ case.case_number }}{% endblock %}
+
+{% block content %}
+<div class="console-hero">
+  <div class="hero-tag"><i class="fa-solid fa-magnifying-glass"></i> MULTI-FIELD EVIDENCE SEARCH</div>
+  <h1 class="hero-title">Forensic Query & Search Engine</h1>
+  <p style="color:var(--text-muted); font-size:13px; margin-top:4px;">
+    Case: <b style="color:#fff;">{{ case.case_number }}</b> • Search across all artifact headers, paths, domains, and timeline entries.
+  </p>
+</div>
+
+<div style="display:grid; grid-template-columns: 3fr 1fr; gap:20px; align-items:start;">
+  <!-- Main Search Form & Results -->
+  <div>
+    <div class="glass-panel" style="padding:20px; margin-bottom:20px;">
+      <form method="GET" action="{{ url_for('search.index', case_id=case.id) }}">
+        <div class="form-group">
+          <label class="form-label">Global Forensic Query String</label>
+          <div style="display:flex; gap:10px;">
+            <input type="text" name="q" class="form-control" placeholder="Search keywords, domains, file paths, URLs..." value="{{ query_text }}" autofocus>
+            <button type="submit" class="btn btn-primary" style="padding:0 24px;">
+              <i class="fa-solid fa-magnifying-glass"></i> Query
+            </button>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:12px;">
+          <div>
+            <label class="form-label">Browser Filter</label>
+            <select name="browser" class="form-control">
+              <option value="ALL" {% if browser == 'ALL' %}selected{% endif %}>All Platforms</option>
+              <option value="CHROME" {% if browser == 'CHROME' %}selected{% endif %}>Chrome</option>
+              <option value="EDGE" {% if browser == 'EDGE' %}selected{% endif %}>Edge</option>
+              <option value="FIREFOX" {% if browser == 'FIREFOX' %}selected{% endif %}>Firefox</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="form-label">Artifact Filter</label>
+            <select name="type" class="form-control">
+              <option value="ALL" {% if artifact_type == 'ALL' %}selected{% endif %}>All Types</option>
+              <option value="HISTORY" {% if artifact_type == 'HISTORY' %}selected{% endif %}>History</option>
+              <option value="DOWNLOAD" {% if artifact_type == 'DOWNLOAD' %}selected{% endif %}>Downloads</option>
+              <option value="COOKIE" {% if artifact_type == 'COOKIE' %}selected{% endif %}>Cookies</option>
+              <option value="BOOKMARK" {% if artifact_type == 'BOOKMARK' %}selected{% endif %}>Bookmarks</option>
+              <option value="SESSION" {% if artifact_type == 'SESSION' %}selected{% endif %}>Sessions</option>
+              <option value="CACHE" {% if artifact_type == 'CACHE' %}selected{% endif %}>Cache</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="form-label">Confidence</label>
+            <select name="confidence" class="form-control">
+              <option value="ALL" {% if confidence == 'ALL' %}selected{% endif %}>Any Confidence</option>
+              <option value="DIRECT" {% if confidence == 'DIRECT' %}selected{% endif %}>DIRECT (Observed)</option>
+              <option value="DERIVED" {% if confidence == 'DERIVED' %}selected{% endif %}>DERIVED (Parsed)</option>
+            </select>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- Search Results Table -->
+    <div class="glass-panel">
+      <div class="glass-header">
+        <span><i class="fa-solid fa-list-check" style="color:var(--accent-cyan); margin-right:8px;"></i> Query Hits ({{ total_found }})</span>
+        {% if query_text and total_found > 0 %}
+        <!-- Save Search Trigger -->
+        <button class="btn btn-outline btn-sm" onclick="document.getElementById('save-search-modal').classList.add('show')">
+          <i class="fa-solid fa-bookmark"></i> Save This Query
+        </button>
+        {% endif %}
+      </div>
+
+      <div class="table-responsive">
+        <table class="forensic-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Platform</th>
+              <th>Category</th>
+              <th>Title / URL</th>
+              <th>Domain</th>
+              <th>Timestamp (UTC)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in results %}
+            <tr style="cursor:pointer;" onclick="{% if a.timeline_event %}openEventDrawer({{ a.timeline_event.id }}){% endif %}">
+              <td class="mono-cell">#ART-{{ a.id }}</td>
+              <td><span class="status-pill pill-info">{{ a.browser }}</span></td>
+              <td><b>{{ a.artifact_type }}</b></td>
+              <td style="max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                {{ a.title or a.url }}
+              </td>
+              <td class="mono-cell" style="color:var(--accent-blue);">{{ a.domain or 'N/A' }}</td>
+              <td class="mono-cell" style="font-size:11px;">{{ a.timestamp_utc | format_utc }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="6" style="text-align:center; padding:30px; color:var(--text-dim);">
+                {% if query_text %}No evidence records matched your search parameters.{% else %}Enter a query above to execute multi-field evidence search.{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar: Saved Searches -->
+  <div>
+    <div class="glass-panel">
+      <div class="glass-header">
+        <span><i class="fa-solid fa-bookmark" style="color:var(--accent-amber); margin-right:8px;"></i> Saved Queries</span>
+      </div>
+      <div style="padding:16px;">
+        {% for s in saved_searches %}
+        <div style="padding:10px 12px; margin-bottom:8px; background:var(--bg-surface); border-radius:6px; font-size:12px;">
+          <div style="font-weight:700; color:#fff;">
+            <a href="{{ url_for('search.index', case_id=case.id, q=s.query_text) }}" style="color:var(--accent-cyan); text-decoration:none;">
+              {{ s.name }}
+            </a>
+          </div>
+          <div class="mono-cell" style="color:var(--text-dim); font-size:11px; margin-top:2px;">
+            "{{ s.query_text }}"
+          </div>
+        </div>
+        {% else %}
+        <p style="color:var(--text-dim); font-size:12px; text-align:center; margin:0;">
+          No queries saved yet.
+        </p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Save Search Modal -->
+<div class="modal-backdrop" id="save-search-modal" onclick="if(event.target === this) this.classList.remove('show')">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <div style="font-weight:700; font-size:14px; color:#fff;">Save Forensic Query</div>
+      <button class="btn btn-outline btn-sm" onclick="document.getElementById('save-search-modal').classList.remove('show')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <form method="POST" action="{{ url_for('search.save_search', case_id=case.id) }}">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Query Bookmark Label</label>
+          <input type="text" name="name" class="form-control" placeholder="e.g. Cloud Portal Login Query" required>
+        </div>
+        <input type="hidden" name="query_text" value="{{ query_text }}">
+        <input type="hidden" name="browser" value="{{ browser }}">
+        <input type="hidden" name="type" value="{{ artifact_type }}">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('save-search-modal').classList.remove('show')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save to Workbench</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Case {{ case.case_number }}{% endblock %}
+
+{% block content %}
+<div class="console-hero">
+  <div class="hero-tag">
+    <i class="fa-solid fa-briefcase"></i> FORENSIC CASE DOSSIER • WORKSPACE
+  </div>
+  <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px;">
+    <div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <h1 class="hero-title" style="font-size:24px;">CASE #{{ case.case_number }}</h1>
+        <span class="status-pill pill-success">{{ case.status }}</span>
+      </div>
+      <p style="color:var(--text-muted); font-size:14px; margin-top:4px;">{{ case.title }}</p>
+    </div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <a href="{{ url_for('evidence.wizard', case_id=case.id) }}" class="btn btn-accent">
+        <i class="fa-solid fa-plus-circle"></i> Ingest Browser Evidence
+      </a>
+      <form method="POST" action="{{ url_for('cases.load_demo_dataset', case_id=case.id) }}" style="display:inline;">
+        <button type="submit" class="btn btn-outline" title="Populate with simulated Chrome, Edge, and Firefox profiles">
+          <i class="fa-solid fa-vial-virus"></i> Ingest Synthetic Demo
+        </button>
+      </form>
+      <a href="{{ url_for('reports.index', case_id=case.id) }}" class="btn btn-outline">
+        <i class="fa-solid fa-file-pdf"></i> Reports
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Case Metric Summary -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Evidence Sources</div>
+    <div class="stat-value" style="color:var(--accent-cyan);">{{ case.evidence_sources.count() }}</div>
+    <div class="stat-meta">Profiles acquired</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Evidence Files</div>
+    <div class="stat-value" style="color:var(--accent-blue);">{{ case.evidence_files.count() }}</div>
+    <div class="stat-meta">Hashed databases</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Total Artifacts</div>
+    <div class="stat-value" style="color:var(--accent-purple);">{{ case.artifacts.count() }}</div>
+    <div class="stat-meta">Normalized records</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Timeline Events</div>
+    <div class="stat-value" style="color:#fff;">{{ case.timeline_events.count() }}</div>
+    <div class="stat-meta">Chronological marks</div>
+  </div>
+</div>
+
+<div style="display:grid; grid-template-columns: 2fr 1fr; gap:20px; align-items:start;">
+  <!-- Left Column: Case Information & Navigation -->
+  <div>
+    <div class="glass-panel" style="margin-bottom:20px;">
+      <div class="glass-header">
+        <span><i class="fa-solid fa-info-circle" style="color:var(--accent-cyan); margin-right:8px;"></i> Investigation Parameters</span>
+      </div>
+      <div style="padding:20px;">
+        <div class="meta-group">
+          <div class="meta-row"><span class="meta-key">Docket ID:</span><span class="meta-val">{{ case.case_number }}</span></div>
+          <div class="meta-row"><span class="meta-key">Assigned Examiner:</span><span class="meta-val">{{ case.investigator_name }}</span></div>
+          <div class="meta-row"><span class="meta-key">Agency / Unit:</span><span class="meta-val">{{ case.organization }}</span></div>
+          <div class="meta-row"><span class="meta-key">Opened Date:</span><span class="meta-val">{{ case.created_at | format_utc }}</span></div>
+          <div class="meta-row"><span class="meta-key">Last Activity:</span><span class="meta-val">{{ case.updated_at | format_utc }}</span></div>
+        </div>
+
+        {% if case.description %}
+        <div style="margin-top:16px; padding:12px; background:var(--bg-surface); border-radius:6px; border-left:3px solid var(--accent-blue); font-size:13px; color:var(--text-main);">
+          <b>Case Scope & Summary:</b><br/>
+          {{ case.description }}
+        </div>
+        {% endif %}
+
+        <!-- Quick Access Workspaces -->
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:12px; margin-top:20px;">
+          <a href="{{ url_for('evidence.index', case_id=case.id) }}" class="btn btn-outline" style="justify-content:center;">
+            <i class="fa-solid fa-database"></i> Evidence ({{ case.evidence_sources.count() }})
+          </a>
+          <a href="{{ url_for('timeline.index', case_id=case.id) }}" class="btn btn-outline" style="justify-content:center;">
+            <i class="fa-solid fa-clock-rotate-left"></i> Timeline
+          </a>
+          <a href="{{ url_for('correlation.index', case_id=case.id) }}" class="btn btn-outline" style="justify-content:center;">
+            <i class="fa-solid fa-diagram-project"></i> Correlation
+          </a>
+          <a href="{{ url_for('search.index', case_id=case.id) }}" class="btn btn-outline" style="justify-content:center;">
+            <i class="fa-solid fa-magnifying-glass"></i> Search
+          </a>
+          <a href="{{ url_for('custody.index', case_id=case.id) }}" class="btn btn-outline" style="justify-content:center;">
+            <i class="fa-solid fa-link"></i> Custody Log
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column: Investigator Notes & Append-Only Log -->
+  <div>
+    <div class="glass-panel">
+      <div class="glass-header">
+        <span><i class="fa-solid fa-note-sticky" style="color:var(--accent-amber); margin-right:8px;"></i> Investigator Notes Ledger</span>
+      </div>
+      <div style="padding:16px;">
+        <!-- Add Note Form -->
+        <form method="POST" action="{{ url_for('cases.add_note', case_id=case.id) }}" style="margin-bottom:16px;">
+          <div class="form-group" style="margin-bottom:8px;">
+            <textarea name="content" class="form-control" rows="3" placeholder="Append contemporaneous investigative note to this case..." required></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm" style="width:100%; justify-content:center;">
+            <i class="fa-solid fa-plus"></i> Append Contemporaneous Note
+          </button>
+        </form>
+
+        <!-- Notes Stream -->
+        <div style="max-height:360px; overflow-y:auto;">
+          {% for note in notes %}
+          <div style="padding:10px 12px; margin-bottom:8px; background:var(--bg-surface); border-radius:6px; border-left:3px solid var(--accent-amber); font-size:12px;">
+            <div style="display:flex; justify-content:space-between; color:var(--text-dim); margin-bottom:4px; font-size:11px;">
+              <b>{{ note.author }}</b>
+              <span>{{ note.created_at | format_utc }}</span>
+            </div>
+            <div style="color:var(--text-main); white-space:pre-wrap;">{{ note.content }}</div>
+          </div>
+          {% else %}
+          <p style="text-align:center; color:var(--text-dim); font-size:12px; padding:20px 0;">
+            No contemporaneous notes recorded yet.
+          </p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

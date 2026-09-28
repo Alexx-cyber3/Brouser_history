@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Artifacts Inventory - {{ case.case_number }}{% endblock %}
+
+{% block content %}
+<div class="console-hero">
+  <div class="hero-tag"><i class="fa-solid fa-layer-group"></i> NORMALIZED ARTIFACTS INVENTORY</div>
+  <h1 class="hero-title">Heterogeneous Browser Artifact Records</h1>
+  <p style="color:var(--text-muted); font-size:13px; margin-top:4px;">
+    Case: <b style="color:#fff;">{{ case.case_number }}</b> • All records normalized from underlying SQLite and JSON stores.
+  </p>
+</div>
+
+<!-- Category Tabs -->
+<div style="display:flex; gap:8px; margin-bottom:20px; overflow-x:auto; padding-bottom:4px;">
+  <a href="{{ url_for('artifacts.index', case_id=case.id, type='ALL') }}" class="btn {% if current_type == 'ALL' %}btn-primary{% else %}btn-outline{% endif %} btn-sm">
+    All ({{ counts.ALL }})
+  </a>
+  <a href="{{ url_for('artifacts.index', case_id=case.id, type='HISTORY') }}" class="btn {% if current_type == 'HISTORY' %}btn-primary{% else %}btn-outline{% endif %} btn-sm">
+    History ({{ counts.HISTORY }})
+  </a>
+  <a href="{{ url_for('artifacts.index', case_id=case.id, type='DOWNLOAD') }}" class="btn {% if current_type == 'DOWNLOAD' %}btn-primary{% else %}btn-outline{% endif %} btn-sm">
+    Downloads ({{ counts.DOWNLOAD }})
+  </a>
+  <a href="{{ url_for('artifacts.index', case_id=case.id, type='COOKIE') }}" class="btn {% if current_type == 'COOKIE' %}btn-primary{% else %}btn-outline{% endif %} btn-sm">
+    Cookies ({{ counts.COOKIE }})
+  </a>
+  <a href="{{ url_for('artifacts.index', case_id=case.id, type='BOOKMARK') }}" class="btn {% if current_type == 'BOOKMARK' %}btn-primary{% else %}btn-outline{% endif %} btn-sm">
+    Bookmarks ({{ counts.BOOKMARK }})
+  </a>
+  <a href="{{ url_for('artifacts.index', case_id=case.id, type='SESSION') }}" class="btn {% if current_type == 'SESSION' %}btn-primary{% else %}btn-outline{% endif %} btn-sm">
+    Sessions ({{ counts.SESSION }})
+  </a>
+  <a href="{{ url_for('artifacts.index', case_id=case.id, type='CACHE') }}" class="btn {% if current_type == 'CACHE' %}btn-primary{% else %}btn-outline{% endif %} btn-sm">
+    Cache ({{ counts.CACHE }})
+  </a>
+</div>
+
+<!-- Artifacts Data Table -->
+<div class="glass-panel">
+  <div class="glass-header">
+    <span><i class="fa-solid fa-table" style="color:var(--accent-purple); margin-right:8px;"></i> Normalized Artifact Records</span>
+    <span class="status-pill pill-info">{{ pagination.total }} Records Found</span>
+  </div>
+  <div class="table-responsive">
+    <table class="forensic-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Browser</th>
+          <th>Category</th>
+          <th>Title / Resource</th>
+          <th>Domain / Host</th>
+          <th>Timestamp (UTC)</th>
+          <th>Confidence</th>
+          <th>Parser</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in artifacts %}
+        <tr style="cursor:pointer;" onclick="{% if a.timeline_event %}openEventDrawer({{ a.timeline_event.id }}){% endif %}">
+          <td class="mono-cell">#ART-{{ a.id }}</td>
+          <td>
+            <span class="status-pill {% if a.browser == 'CHROME' %}pill-info{% elif a.browser == 'EDGE' %}pill-purple{% else %}pill-warning{% endif %}">
+              {{ a.browser }}
+            </span>
+          </td>
+          <td><b>{{ a.artifact_type }}</b></td>
+          <td style="max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ a.title or a.url }}">
+            {{ a.title or a.url or 'Untitled' }}
+          </td>
+          <td class="mono-cell" style="color:var(--accent-blue);">{{ a.domain or 'N/A' }}</td>
+          <td class="mono-cell" style="font-size:11px;">{{ a.timestamp_utc | format_utc }}</td>
+          <td><span class="status-pill pill-info" style="font-size:10px;">{{ a.confidence }}</span></td>
+          <td style="font-size:11px; color:var(--text-dim);">{{ a.parser_name }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" style="text-align:center; padding:30px; color:var(--text-dim);">No artifacts found in this category.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Pagination -->
+{% if pagination.pages > 1 %}
+<div style="display:flex; justify-content:center; gap:8px; margin-top:20px;">
+  {% if pagination.has_prev %}
+    <a href="{{ url_for('artifacts.index', case_id=case.id, page=pagination.page - 1, type=current_type) }}" class="btn btn-outline btn-sm">Previous</a>
+  {% endif %}
+  <span class="btn btn-outline btn-sm" style="cursor:default;">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+  {% if pagination.has_next %}
+    <a href="{{ url_for('artifacts.index', case_id=case.id, page=pagination.page + 1, type=current_type) }}" class="btn btn-outline btn-sm">Next</a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

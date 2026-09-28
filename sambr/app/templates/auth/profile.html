@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Investigator Profile{% endblock %}
+
+{% block content %}
+<div class="console-hero">
+  <div class="hero-tag"><i class="fa-solid fa-user-shield"></i> CLEARANCE & CREDENTIALS</div>
+  <h1 class="hero-title">Investigator Profile Dossier</h1>
+</div>
+
+<div style="max-width: 650px;">
+  <div class="glass-panel" style="padding: 24px;">
+    <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border-subtle);">
+      <div style="width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue)); display: flex; align-items: center; justify-content: center; font-size: 28px; color: #fff;">
+        <i class="fa-solid fa-user-tie"></i>
+      </div>
+      <div>
+        <h2 style="font-size: 18px; font-weight: 700; color: #fff;">{{ current_user.full_name }}</h2>
+        <div style="font-family: var(--font-mono); font-size: 12px; color: var(--accent-cyan);">
+          ROLE: {{ current_user.role }} • USERNAME: {{ current_user.username }}
+        </div>
+      </div>
+    </div>
+
+    <div class="meta-group">
+      <div class="meta-row"><span class="meta-key">Official Organization:</span><span class="meta-val">{{ current_user.organization }}</span></div>
+      <div class="meta-row"><span class="meta-key">Registered Email:</span><span class="meta-val">{{ current_user.email }}</span></div>
+      <div class="meta-row"><span class="meta-key">Clearance Level:</span><span class="meta-val"><span class="status-pill pill-success">{{ current_user.role }}</span></span></div>
+      <div class="meta-row"><span class="meta-key">Account Status:</span><span class="meta-val"><span class="status-pill pill-success">ACTIVE & VERIFIED</span></span></div>
+      <div class="meta-row"><span class="meta-key">Account Created:</span><span class="meta-val">{{ current_user.created_at | format_utc }}</span></div>
+      <div class="meta-row"><span class="meta-key">Last Workstation Login:</span><span class="meta-val">{{ current_user.last_login | format_utc }}</span></div>
+    </div>
+
+    <div style="margin-top: 24px; display: flex; justify-content: flex-end;">
+      <a href="{{ url_for('auth.logout') }}" class="btn btn-outline" style="border-color: var(--accent-red); color: var(--accent-red);">
+        <i class="fa-solid fa-right-from-bracket"></i> Terminate Forensic Session
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

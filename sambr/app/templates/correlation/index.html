@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Cross-Source Correlation - {{ case.case_number }}{% endblock %}
+
+{% block content %}
+<div class="console-hero">
+  <div class="hero-tag"><i class="fa-solid fa-diagram-project"></i> CROSS-SOURCE CORRELATION ENGINE</div>
+  <h1 class="hero-title">Multi-Browser Relational Activity Analysis</h1>
+  <p style="color:var(--text-muted); font-size:13px; margin-top:4px;">
+    Case: <b style="color:#fff;">{{ case.case_number }}</b> • Objective associative correlation without speculative causal claims.
+  </p>
+</div>
+
+<!-- Evidentiary Standard Notice -->
+<div style="background:rgba(245, 158, 11, 0.08); border:1px solid rgba(245, 158, 11, 0.25); border-radius:6px; padding:12px 16px; margin-bottom:24px; font-size:12px; color:var(--text-main);">
+  <b style="color:var(--accent-amber);"><i class="fa-solid fa-scale-balanced" style="margin-right:6px;"></i> Forensic Standard of Evidentiary Association:</b>
+  Correlations represent observed spatial or temporal convergence across independent browser stores.
+  They are documented as <i>"Temporally Correlated"</i> or <i>"Cross-Platform Accessed"</i> rather than inferring technical causation.
+</div>
+
+<!-- Section 1: Cross-Browser Domain Convergence -->
+<div class="glass-panel" style="margin-bottom:24px;">
+  <div class="glass-header">
+    <span><i class="fa-solid fa-globe" style="color:var(--accent-cyan); margin-right:8px;"></i> Multi-Browser Domain Convergence ({{ correlations.cross_browser_domains | length }})</span>
+    <span class="status-pill pill-purple">Multi-Source</span>
+  </div>
+  <div class="table-responsive">
+    <table class="forensic-table">
+      <thead>
+        <tr>
+          <th>Target Domain</th>
+          <th>Platforms Involved</th>
+          <th>Distinct Profiles</th>
+          <th>Evidentiary Association Finding</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in correlations.cross_browser_domains %}
+        <tr>
+          <td class="mono-cell" style="color:var(--accent-cyan); font-weight:700;">{{ c.domain }}</td>
+          <td>
+            {% for b in c.browsers %}
+              <span class="status-pill {% if b == 'CHROME' %}pill-info{% elif b == 'EDGE' %}pill-purple{% else %}pill-warning{% endif %}" style="margin-right:4px;">
+                {{ b }}
+              </span>
+            {% endfor %}
+          </td>
+          <td style="font-size:12px; color:var(--text-muted);">{{ c.profiles | join(', ') }}</td>
+          <td style="font-size:12px;">{{ c.note }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" style="text-align:center; padding:24px; color:var(--text-dim);">No multi-browser domain convergence detected. Ingest multiple browser profiles to correlate across sources.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Section 2: Visit-to-Download Temporal Sequences -->
+<div class="glass-panel" style="margin-bottom:24px;">
+  <div class="glass-header">
+    <span><i class="fa-solid fa-file-arrow-down" style="color:var(--accent-blue); margin-right:8px;"></i> Temporally Correlated Visit-to-Download Chains ({{ correlations.visit_download_sequences | length }})</span>
+    <span class="status-pill pill-info">&Delta; &lt; 10 min window</span>
+  </div>
+  <div class="table-responsive">
+    <table class="forensic-table">
+      <thead>
+        <tr>
+          <th>Associated Domain</th>
+          <th>Web Visit Timing</th>
+          <th>Download Execution Timing</th>
+          <th>Temporal Delta</th>
+          <th>Observed Associative Sequence</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for v in correlations.visit_download_sequences %}
+        <tr>
+          <td class="mono-cell" style="font-weight:700;">{{ v.domain }}</td>
+          <td style="font-size:11px;">
+            <span class="status-pill pill-info">{{ v.visit_browser }}</span><br/>
+            <span class="mono-cell" style="color:var(--text-muted);">{{ v.visit_timestamp }}</span>
+          </td>
+          <td style="font-size:11px;">
+            <span class="status-pill pill-purple">{{ v.download_browser }}</span><br/>
+            <span class="mono-cell" style="color:var(--text-muted);">{{ v.download_timestamp }}</span>
+          </td>
+          <td class="mono-cell" style="color:var(--accent-amber); font-weight:700;">+{{ v.time_delta_seconds }}s</td>
+          <td style="font-size:12px;">{{ v.evidentiary_note }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" style="text-align:center; padding:24px; color:var(--text-dim);">No temporal visit-to-download clusters identified.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Section 3: High-Frequency Activity Bursts -->
+<div class="glass-panel">
+  <div class="glass-header">
+    <span><i class="fa-solid fa-bolt" style="color:var(--accent-amber); margin-right:8px;"></i> Rapid Activity Bursts (&ge; 10 Actions / 60s) ({{ correlations.activity_bursts | length }})</span>
+  </div>
+  <div class="table-responsive">
+    <table class="forensic-table">
+      <thead>
+        <tr>
+          <th>Burst Start (UTC)</th>
+          <th>Burst End (UTC)</th>
+          <th>Action Count</th>
+          <th>Browsers Active</th>
+          <th>Associated Findings</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in correlations.activity_bursts %}
+        <tr>
+          <td class="mono-cell">{{ b.start_time }}</td>
+          <td class="mono-cell">{{ b.end_time }}</td>
+          <td class="mono-cell" style="font-weight:700; color:var(--accent-amber);">{{ b.event_count }} events</td>
+          <td>{{ b.browsers_involved | join(', ') }}</td>
+          <td style="font-size:12px;">{{ b.evidentiary_note }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" style="text-align:center; padding:24px; color:var(--text-dim);">No high-frequency bursts identified in active timeline.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

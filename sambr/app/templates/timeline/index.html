@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}Forensic Timeline - {{ case.case_number }}{% endblock %}
+
+{% block content %}
+<div class="console-hero">
+  <div class="hero-tag"><i class="fa-solid fa-clock-rotate-left"></i> UNIFIED FORENSIC TIMELINE</div>
+  <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:12px;">
+    <div>
+      <h1 class="hero-title">Multi-Browser Chronological Activity Stream</h1>
+      <p style="color:var(--text-muted); font-size:13px; margin-top:4px;">
+        Case: <b style="color:#fff;">{{ case.case_number }}</b> • Correlating temporal sequences across Chrome, Edge, and Firefox.
+      </p>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <a href="{{ url_for('reports.index', case_id=case.id) }}" class="btn btn-outline">
+        <i class="fa-solid fa-file-export"></i> Export Timeline
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="glass-panel" style="padding:16px; margin-bottom:20px;">
+  <form method="GET" action="{{ url_for('timeline.index', case_id=case.id) }}" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) 100px; gap:12px; align-items:end;">
+    <!-- Keyword Search -->
+    <div>
+      <label class="form-label">Keyword / URL Search</label>
+      <input type="text" name="q" class="form-control" placeholder="Search URL, title, domain..." value="{{ filters.q }}">
+    </div>
+
+    <!-- Browser Filter -->
+    <div>
+      <label class="form-label">Browser Platform</label>
+      <select name="browser" class="form-control">
+        <option value="ALL" {% if filters.browser == 'ALL' %}selected{% endif %}>All Platforms</option>
+        <option value="CHROME" {% if filters.browser == 'CHROME' %}selected{% endif %}>Google Chrome</option>
+        <option value="EDGE" {% if filters.browser == 'EDGE' %}selected{% endif %}>Microsoft Edge</option>
+        <option value="FIREFOX" {% if filters.browser == 'FIREFOX' %}selected{% endif %}>Mozilla Firefox</option>
+      </select>
+    </div>
+
+    <!-- Artifact Type Filter -->
+    <div>
+      <label class="form-label">Artifact Category</label>
+      <select name="type" class="form-control">
+        <option value="ALL" {% if filters.type == 'ALL' %}selected{% endif %}>All Categories</option>
+        <option value="HISTORY" {% if filters.type == 'HISTORY' %}selected{% endif %}>History / Visits</option>
+        <option value="DOWNLOAD" {% if filters.type == 'DOWNLOAD' %}selected{% endif %}>Downloads</option>
+        <option value="COOKIE" {% if filters.type == 'COOKIE' %}selected{% endif %}>Cookies</option>
+        <option value="BOOKMARK" {% if filters.type == 'BOOKMARK' %}selected{% endif %}>Bookmarks</option>
+        <option value="SESSION" {% if filters.type == 'SESSION' %}selected{% endif %}>Sessions</option>
+        <option value="CACHE" {% if filters.type == 'CACHE' %}selected{% endif %}>Cache</option>
+      </select>
+    </div>
+
+    <!-- Domain Filter -->
+    <div>
+      <label class="form-label">Domain Filter</label>
+      <input type="text" name="domain" class="form-control" placeholder="e.g. github.com" value="{{ filters.domain }}" list="domain-datalist">
+      <datalist id="domain-datalist">
+        {% for d in top_domains %}
+        <option value="{{ d }}">
+        {% endfor %}
+      </datalist>
+    </div>
+
+    <!-- Sort Order -->
+    <div>
+      <label class="form-label">Chronology Sort</label>
+      <select name="sort" class="form-control">
+        <option value="desc" {% if filters.sort == 'desc' %}selected{% endif %}>Newest First (Desc)</option>
+        <option value="asc" {% if filters.sort == 'asc' %}selected{% endif %}>Oldest First (Asc)</option>
+      </select>
+    </div>
+
+    <!-- Submit Button -->
+    <div>
+      <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; height:35px;">
+        <i class="fa-solid fa-filter"></i> Apply
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- Timeline Header Count & Bounds -->
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; font-size:12px; color:var(--text-muted);">
+  <div>
+    Showing events <b>{{ (timeline_data.page - 1) * timeline_data.per_page + 1 }}</b> to 
+    <b>{{ [timeline_data.page * timeline_data.per_page, timeline_data.total_items] | min }}</b> of 
+    <b style="color:#fff;">{{ timeline_data.total_items }}</b> chronological events.
+  </div>
+  <div style="font-family:var(--font-mono);">
+    Span: {{ stats.first_event or 'N/A' }} ⟶ {{ stats.last_event or 'N/A' }}
+  </div>
+</div>
+
+<!-- Timeline Stream -->
+<div class="timeline-stream">
+  {% for ev in timeline_data.events %}
+  <div class="glass-panel timeline-event-card {% if ev.artifact_type == 'DOWNLOAD' %}event-download{% elif ev.artifact_type == 'COOKIE' %}event-cookie{% endif %}" onclick="openEventDrawer({{ ev.id }})">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span class="mono-cell" style="color:var(--accent-cyan); font-weight:700;">
+          <i class="fa-regular fa-clock" style="margin-right:4px;"></i> {{ ev.timestamp_utc or 'N/A' }}
+        </span>
+        <span class="status-pill {% if ev.browser == 'CHROME' %}pill-info{% elif ev.browser == 'EDGE' %}pill-purple{% else %}pill-warning{% endif %}">
+          {{ ev.browser }} ({{ ev.profile }})
+        </span>
+        <span class="status-pill pill-success">{{ ev.event_type }}</span>
+      </div>
+      <div>
+        <span class="mono-cell" style="font-size:11px; color:var(--text-dim);">#TL-{{ ev.id }}</span>
+        <span class="status-pill pill-info" style="font-size:10px; margin-left:6px;">{{ ev.confidence }}</span>
+      </div>
+    </div>
+
+    <!-- Event Title and Domain -->
+    <div style="font-weight:600; font-size:14px; color:#fff; margin-bottom:4px;">
+      {{ ev.title or ev.domain or "Untitled Activity" }}
+    </div>
+
+    <!-- URL Display -->
+    {% if ev.url %}
+    <div class="mono-cell" style="color:var(--text-muted); font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:90%;">
+      {{ ev.url }}
+    </div>
+    {% endif %}
+
+    <div style="margin-top:6px; font-size:11px; color:var(--text-dim); display:flex; gap:16px;">
+      <span>Source: <b>{{ ev.source_file or 'Unknown' }}</b></span>
+      {% if ev.domain %}<span>Domain: <b style="color:var(--accent-blue)">{{ ev.domain }}</b></span>{% endif %}
+      <span style="margin-left:auto; color:var(--accent-cyan);"><i class="fa-solid fa-angles-right"></i> Inspect Record</span>
+    </div>
+  </div>
+  {% else %}
+  <div class="glass-panel" style="padding:40px; text-align:center; color:var(--text-dim);">
+    No timeline events matching the selected filters.
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Pagination Controls -->
+{% if timeline_data.total_pages > 1 %}
+<div style="display:flex; justify-content:center; gap:8px; margin-top:24px;">
+  {% if timeline_data.has_prev %}
+    <a href="{{ url_for('timeline.index', case_id=case.id, page=timeline_data.page - 1, q=filters.q, browser=filters.browser, type=filters.type, domain=filters.domain, sort=filters.sort) }}" class="btn btn-outline btn-sm">
+      <i class="fa-solid fa-chevron-left"></i> Previous
+    </a>
+  {% endif %}
+
+  <span class="btn btn-outline btn-sm" style="cursor:default; font-family:var(--font-mono);">
+    Page {{ timeline_data.page }} of {{ timeline_data.total_pages }}
+  </span>
+
+  {% if timeline_data.has_next %}
+    <a href="{{ url_for('timeline.index', case_id=case.id, page=timeline_data.page + 1, q=filters.q, browser=filters.browser, type=filters.type, domain=filters.domain, sort=filters.sort) }}" class="btn btn-outline btn-sm">
+      Next <i class="fa-solid fa-chevron-right"></i>
+    </a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

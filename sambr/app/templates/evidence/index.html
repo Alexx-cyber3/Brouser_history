@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Evidence Inventory - {{ case.case_number }}{% endblock %}
+
+{% block content %}
+<div class="console-hero">
+  <div class="hero-tag"><i class="fa-solid fa-database"></i> FORENSIC EVIDENCE INVENTORY</div>
+  <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:12px;">
+    <div>
+      <h1 class="hero-title">Evidence Sources & Cryptographic Hashes</h1>
+      <p style="color:var(--text-muted); font-size:13px; margin-top:4px;">
+        Case: <b style="color:#fff;">{{ case.case_number }}</b> • All evidence processed strictly in READ-ONLY mode.
+      </p>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <a href="{{ url_for('evidence.wizard', case_id=case.id) }}" class="btn btn-accent">
+        <i class="fa-solid fa-plus-circle"></i> Ingest New Source
+      </a>
+      <form method="POST" action="{{ url_for('evidence.verify_all', case_id=case.id) }}" style="display:inline;">
+        <button type="submit" class="btn btn-outline" title="Re-calculates SHA-256 on all source files to verify integrity">
+          <i class="fa-solid fa-shield-check"></i> Re-Verify All Hashes
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Section 1: Ingested Evidence Profiles / Sources -->
+<div class="glass-panel" style="margin-bottom:24px;">
+  <div class="glass-header">
+    <span><i class="fa-solid fa-folder-tree" style="color:var(--accent-cyan); margin-right:8px;"></i> Ingested Evidence Sources ({{ sources | length }})</span>
+  </div>
+  <div class="table-responsive">
+    <table class="forensic-table">
+      <thead>
+        <tr>
+          <th>Source ID</th>
+          <th>Source Name</th>
+          <th>Platform</th>
+          <th>Profile</th>
+          <th>Original Path</th>
+          <th>Acquired Date (UTC)</th>
+          <th>Status</th>
+          <th>Files</th>
+          <th>Artifacts</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in sources %}
+        <tr>
+          <td class="mono-cell">SRC-{{ s.id }}</td>
+          <td style="font-weight:600;">{{ s.name }}</td>
+          <td>
+            <span class="status-pill {% if s.browser_type == 'CHROME' %}pill-info{% elif s.browser_type == 'EDGE' %}pill-purple{% else %}pill-warning{% endif %}">
+              {{ s.browser_type }}
+            </span>
+          </td>
+          <td>{{ s.profile_name }}</td>
+          <td class="mono-cell" style="font-size:11px; max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ s.original_source_path }}">
+            {{ s.original_source_path }}
+          </td>
+          <td class="mono-cell" style="font-size:11px;">{{ s.acquisition_date | format_utc }}</td>
+          <td>
+            <span class="status-pill {% if s.status == 'PROCESSED' %}pill-success{% elif s.status == 'ERROR' %}pill-danger{% else %}pill-info{% endif %}">
+              {{ s.status }}
+            </span>
+          </td>
+          <td style="font-family:var(--font-mono);">{{ s.files.count() }}</td>
+          <td style="font-family:var(--font-mono);">{{ s.artifacts.count() }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" style="text-align:center; padding:30px; color:var(--text-dim);">No evidence sources imported yet. Launch the Ingest Wizard above to begin.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Section 2: Evidence Files & SHA-256 Hash Verification Ledger -->
+<div class="glass-panel">
+  <div class="glass-header">
+    <span><i class="fa-solid fa-hashtag" style="color:var(--accent-green); margin-right:8px;"></i> Cryptographic File Hashes & Integrity Verification ({{ files | length }})</span>
+  </div>
+  <div class="table-responsive">
+    <table class="forensic-table">
+      <thead>
+        <tr>
+          <th>File ID</th>
+          <th>File Name</th>
+          <th>Size</th>
+          <th>Baseline SHA-256 Hash</th>
+          <th>Forensic Workspace Copy</th>
+          <th>Integrity Status</th>
+          <th style="text-align:right;">Verify Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in files %}
+        <tr>
+          <td class="mono-cell">EV-{{ f.id }}</td>
+          <td style="font-weight:600;">
+            <i class="fa-solid fa-file-lines" style="color:var(--text-dim); margin-right:6px;"></i>
+            {{ f.file_name }}
+          </td>
+          <td class="mono-cell">{{ (f.file_size / 1024) | round(1) }} KB</td>
+          <td class="mono-cell" style="color:var(--accent-cyan); font-size:11px;">
+            <span title="{{ f.original_hash }}">{{ f.original_hash[:20] }}...{{ f.original_hash[-12:] }}</span>
+          </td>
+          <td class="mono-cell" style="font-size:11px; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ f.forensic_copy_path }}">
+            {{ f.forensic_copy_path }}
+          </td>
+          <td id="status-cell-{{ f.id }}">
+            <span class="status-pill {% if f.verification_status == 'INTEGRITY VERIFIED' %}pill-success{% elif f.verification_status == 'INTEGRITY MISMATCH' %}pill-danger{% else %}pill-warning{% endif %}">
+              {% if f.verification_status == 'INTEGRITY VERIFIED' %}✓ VERIFIED{% elif f.verification_status == 'INTEGRITY MISMATCH' %}⚠ MISMATCH{% else %}UNVERIFIED{% endif %}
+            </span>
+          </td>
+          <td style="text-align:right;">
+            <button class="btn btn-outline btn-sm btn-verify-hash" data-file-id="{{ f.id }}" title="Re-calculate SHA-256 of source file and verify bit integrity">
+              <i class="fa-solid fa-arrows-rotate"></i> Verify Hash
+            </button>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" style="text-align:center; padding:30px; color:var(--text-dim);">No individual evidence files cataloged yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

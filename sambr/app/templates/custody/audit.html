@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Case Audit Log - {{ case.case_number }}{% endblock %}
+
+{% block content %}
+<div class="console-hero">
+  <div class="hero-tag"><i class="fa-solid fa-clipboard-list"></i> CASE AUDIT TRAIL</div>
+  <h1 class="hero-title">Investigator & Application Activity Log</h1>
+  <p style="color:var(--text-muted); font-size:13px; margin-top:4px;">
+    Case: <b style="color:#fff;">{{ case.case_number }}</b> • Detailed operational audit trail for evidentiary scrutiny.
+  </p>
+</div>
+
+<div class="glass-panel">
+  <div class="glass-header">
+    <span><i class="fa-solid fa-history" style="color:var(--accent-blue); margin-right:8px;"></i> Recorded Case Actions ({{ logs | length }})</span>
+  </div>
+  <div class="table-responsive">
+    <table class="forensic-table">
+      <thead>
+        <tr>
+          <th>Log ID</th>
+          <th>Timestamp (UTC)</th>
+          <th>Investigator</th>
+          <th>Action</th>
+          <th>Status</th>
+          <th>IP Address</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for l in logs %}
+        <tr>
+          <td class="mono-cell">#AUD-{{ l.id }}</td>
+          <td class="mono-cell" style="font-size:11px;">{{ l.timestamp | format_utc }}</td>
+          <td style="font-weight:600;">{{ l.username }}</td>
+          <td><b>{{ l.action }}</b></td>
+          <td>
+            <span class="status-pill {% if l.status == 'SUCCESS' %}pill-success{% elif l.status == 'WARNING' %}pill-warning{% else %}pill-danger{% endif %}">
+              {{ l.status }}
+            </span>
+          </td>
+          <td class="mono-cell" style="font-size:11px;">{{ l.ip_address }}</td>
+          <td style="font-size:11px; max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" class="mono-cell">
+            {{ l.details_json or '{}' }}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" style="text-align:center; padding:30px; color:var(--text-dim);">No audit logs recorded for this case.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

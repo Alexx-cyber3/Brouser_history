@@ -1,0 +1,41 @@
+{
+  "checksum": "a8f7c9e1234567890abcdef123456789",
+  "roots": {
+    "bookmark_bar": {
+      "children": [
+        {
+          "date_added": "13433785023302316",
+          "id": "1",
+          "name": "Enterprise Intranet",
+          "type": "url",
+          "url": "https://internal-portal.corp.enterprise.local/dashboard"
+        },
+        {
+          "date_added": "13433785023302316",
+          "id": "2",
+          "name": "Cloud Storage Portal",
+          "type": "url",
+          "url": "https://secure-transfer.cloud-drop.net"
+        },
+        {
+          "children": [
+            {
+              "date_added": "13433785023302316",
+              "id": "4",
+              "name": "Linux Repository",
+              "type": "url",
+              "url": "https://github.com/torvalds/linux"
+            }
+          ],
+          "date_added": "13433785023302316",
+          "id": "3",
+          "name": "Research Folders",
+          "type": "folder"
+        }
+      ],
+      "name": "Bookmarks bar",
+      "type": "folder"
+    }
+  },
+  "version": 1
+}

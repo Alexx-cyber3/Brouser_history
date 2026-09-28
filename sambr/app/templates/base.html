@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Workstation Console{% endblock %} - TraceFusion Forensics</title>
+  
+  <!-- FontAwesome Icons & Chart.js -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  
+  <!-- Forensic Theme Styles -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/forensic.css') }}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="app-sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">
+          <i class="fa-solid fa-microchip"></i>
+        </div>
+        <div>
+          <div class="brand-title">TRACEFUSION</div>
+          <div class="brand-tag">FORENSIC SUITE v{{ app_version }}</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-category">Investigation</div>
+        <a href="{{ url_for('dashboard.index') }}" class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+          <i class="fa-solid fa-chart-line nav-icon"></i> Dashboard
+        </a>
+        <a href="{{ url_for('cases.index') }}" class="nav-link {% if 'cases' in request.endpoint %}active{% endif %}">
+          <i class="fa-solid fa-folder-open nav-icon"></i> Cases Registry
+        </a>
+
+        {% if current_active_case %}
+        <div class="nav-category">Active Case: {{ current_active_case.case_number }}</div>
+        <a id="nav-evidence" href="{{ url_for('evidence.index', case_id=current_active_case.id) }}" class="nav-link {% if 'evidence' in request.endpoint %}active{% endif %}">
+          <i class="fa-solid fa-database nav-icon"></i> Evidence Sources
+        </a>
+        <a href="{{ url_for('artifacts.index', case_id=current_active_case.id) }}" class="nav-link {% if 'artifacts' in request.endpoint %}active{% endif %}">
+          <i class="fa-solid fa-layer-group nav-icon"></i> Artifacts Inventory
+        </a>
+        <a id="nav-timeline" href="{{ url_for('timeline.index', case_id=current_active_case.id) }}" class="nav-link {% if 'timeline' in request.endpoint %}active{% endif %}">
+          <i class="fa-solid fa-clock-rotate-left nav-icon"></i> Forensic Timeline
+        </a>
+        <a href="{{ url_for('correlation.index', case_id=current_active_case.id) }}" class="nav-link {% if 'correlation' in request.endpoint %}active{% endif %}">
+          <i class="fa-solid fa-diagram-project nav-icon"></i> Cross-Correlation
+        </a>
+        <a href="{{ url_for('search.index', case_id=current_active_case.id) }}" class="nav-link {% if 'search' in request.endpoint %}active{% endif %}">
+          <i class="fa-solid fa-magnifying-glass nav-icon"></i> Evidence Search
+        </a>
+        <a id="nav-reports" href="{{ url_for('reports.index', case_id=current_active_case.id) }}" class="nav-link {% if 'reports' in request.endpoint %}active{% endif %}">
+          <i class="fa-solid fa-file-shield nav-icon"></i> Forensic Reports
+        </a>
+        <a href="{{ url_for('custody.index', case_id=current_active_case.id) }}" class="nav-link {% if 'custody.index' in request.endpoint %}active{% endif %}">
+          <i class="fa-solid fa-link nav-icon"></i> Chain of Custody
+        </a>
+        <a href="{{ url_for('custody.audit_log', case_id=current_active_case.id) }}" class="nav-link {% if 'custody.audit_log' in request.endpoint %}active{% endif %}">
+          <i class="fa-solid fa-clipboard-list nav-icon"></i> Case Audit Log
+        </a>
+        {% endif %}
+
+        <div class="nav-category">System & Auditing</div>
+        <a href="{{ url_for('custody.system_audit') }}" class="nav-link {% if 'system_audit' in request.endpoint %}active{% endif %}">
+          <i class="fa-solid fa-shield-halved nav-icon"></i> System Activity
+        </a>
+        <a href="{{ url_for('settings.index') }}" class="nav-link {% if 'settings' in request.endpoint %}active{% endif %}">
+          <i class="fa-solid fa-sliders nav-icon"></i> System Health
+        </a>
+      </nav>
+
+      <!-- User footer in sidebar -->
+      <div style="padding: 12px 16px; border-top: 1px solid var(--border-subtle); background: rgba(8, 12, 20, 0.4);">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <div style="font-weight: 600; font-size: 12px; color: var(--text-main);">{{ current_user.full_name }}</div>
+            <div style="font-size: 10px; color: var(--accent-cyan); font-family: var(--font-mono);">{{ current_user.role }}</div>
+          </div>
+          <a href="{{ url_for('auth.logout') }}" title="Terminate Session" style="color: var(--text-dim); hover: color: var(--accent-red);">
+            <i class="fa-solid fa-power-off"></i>
+          </a>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Application Container -->
+    <div class="app-main">
+      <!-- Top Bar -->
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <!-- Active Case Indicator -->
+          {% if current_active_case %}
+          <div class="case-badge">
+            <span class="pulse-dot"></span>
+            <span>ACTIVE: <b>{{ current_active_case.case_number }}</b></span>
+          </div>
+          {% else %}
+          <div class="case-badge none">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span>NO ACTIVE CASE</span>
+          </div>
+          {% endif %}
+
+          <!-- Switch Case Control -->
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <select class="form-control" id="switch-case-select" style="padding: 4px 8px; font-size: 12px; height: 32px; min-width: 170px;" onchange="handleCaseSelection(this)">
+              <option value="">Switch Active Case...</option>
+              {% for c in all_cases_nav %}
+              <option value="{{ c.id }}" {% if current_active_case and current_active_case.id == c.id %}selected{% endif %}>
+                #{{ c.case_number }} - {{ c.title[:25] }}
+              </option>
+              {% endfor %}
+              <option value="__NEW_CASE__" style="color: var(--accent-cyan); font-weight: bold;">+ Open New Case Docket...</option>
+            </select>
+
+            <button type="button" class="btn btn-outline btn-sm" onclick="openNewCaseModal()" title="Create New Forensic Case Docket" style="height: 32px; font-size: 11px; white-space: nowrap;">
+              <i class="fa-solid fa-plus"></i> New Case
+            </button>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <!-- Quick Search Button (Ctrl+K) -->
+          <button class="btn btn-outline btn-sm" onclick="toggleCommandPalette()" style="font-family: var(--font-mono); font-size: 11px;">
+            <i class="fa-solid fa-terminal"></i> Quick Command <kbd style="background: rgba(255,255,255,0.1); padding: 1px 4px; border-radius: 3px;">Ctrl+K</kbd>
+          </button>
+
+          <!-- Acquisition Wizard Trigger -->
+          {% if current_active_case %}
+          <a href="{{ url_for('evidence.wizard', case_id=current_active_case.id) }}" class="btn btn-accent btn-sm">
+            <i class="fa-solid fa-plus"></i> Acquire Evidence
+          </a>
+          {% endif %}
+
+          <a href="{{ url_for('auth.profile') }}" class="btn btn-outline btn-sm" title="Investigator Profile">
+            <i class="fa-solid fa-user-shield"></i>
+          </a>
+        </div>
+      </header>
+
+      <!-- Flashed Messages -->
+      <div style="padding: 12px 24px 0;">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="glass-panel" style="padding: 10px 16px; margin-bottom: 12px; border-left: 4px solid {% if category == 'success' %}var(--accent-green){% elif category == 'danger' %}var(--accent-red){% elif category == 'warning' %}var(--accent-amber){% else %}var(--accent-blue){% endif %};">
+                <i class="fa-solid {% if category == 'success' %}fa-circle-check{% elif category == 'danger' %}fa-triangle-exclamation{% elif category == 'warning' %}fa-circle-exclamation{% else %}fa-circle-info{% endif %}" style="margin-right: 8px;"></i>
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+      </div>
+
+      <!-- Main Body Content -->
+      <main class="content-body">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+
+  <!-- Command Palette Modal (Ctrl + K) -->
+  <div class="modal-backdrop" id="cmd-palette-backdrop" onclick="if(event.target === this) closeCommandPalette()">
+    <div class="cmd-palette-box">
+      <input type="text" id="cmd-palette-input" class="cmd-input" placeholder="Type a forensic command, hotkey, or navigation destination..." oninput="filterCommands(this.value)">
+      <div class="cmd-results">
+        <div class="cmd-item" onclick="window.location.href='{{ url_for('dashboard.index') }}'">
+          <span><i class="fa-solid fa-chart-line" style="margin-right: 8px;"></i> Navigate: Forensic Dashboard</span>
+          <span style="font-family: var(--font-mono); font-size: 11px;">Dashboard</span>
+        </div>
+        <div class="cmd-item" onclick="window.location.href='{{ url_for('cases.index') }}'">
+          <span><i class="fa-solid fa-folder-open" style="margin-right: 8px;"></i> Navigate: Cases Registry</span>
+          <span style="font-family: var(--font-mono); font-size: 11px;">Cases</span>
+        </div>
+        {% if current_active_case %}
+        <div class="cmd-item" onclick="window.location.href='{{ url_for('evidence.index', case_id=current_active_case.id) }}'">
+          <span><i class="fa-solid fa-database" style="margin-right: 8px;"></i> Navigate: Evidence Inventory</span>
+          <span style="font-family: var(--font-mono); font-size: 11px;">Ctrl+Shift+E</span>
+        </div>
+        <div class="cmd-item" onclick="window.location.href='{{ url_for('timeline.index', case_id=current_active_case.id) }}'">
+          <span><i class="fa-solid fa-clock-rotate-left" style="margin-right: 8px;"></i> Navigate: Unified Timeline</span>
+          <span style="font-family: var(--font-mono); font-size: 11px;">Ctrl+Shift+T</span>
+        </div>
+        <div class="cmd-item" onclick="window.location.href='{{ url_for('correlation.index', case_id=current_active_case.id) }}'">
+          <span><i class="fa-solid fa-diagram-project" style="margin-right: 8px;"></i> Navigate: Cross-Browser Correlation</span>
+          <span style="font-family: var(--font-mono); font-size: 11px;">Correlation</span>
+        </div>
+        <div class="cmd-item" onclick="window.location.href='{{ url_for('reports.index', case_id=current_active_case.id) }}'">
+          <span><i class="fa-solid fa-file-shield" style="margin-right: 8px;"></i> Generate Forensic Reports (PDF/HTML/JSON)</span>
+          <span style="font-family: var(--font-mono); font-size: 11px;">Ctrl+Shift+R</span>
+        </div>
+        <div class="cmd-item" onclick="window.location.href='{{ url_for('evidence.wizard', case_id=current_active_case.id) }}'">
+          <span><i class="fa-solid fa-plus-circle" style="margin-right: 8px;"></i> Launch Evidence Acquisition Wizard</span>
+          <span style="font-family: var(--font-mono); font-size: 11px;">Acquire</span>
+        </div>
+        {% endif %}
+        <div class="cmd-item" onclick="window.location.href='{{ url_for('settings.index') }}'">
+          <span><i class="fa-solid fa-sliders" style="margin-right: 8px;"></i> View System Health & Parser Diagnostic</span>
+          <span style="font-family: var(--font-mono); font-size: 11px;">Settings</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global New Case Docket Modal -->
+  <div class="modal-backdrop" id="global-new-case-modal" onclick="if(event.target === this) closeNewCaseModal()">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div style="font-weight:700; font-size:15px; color:#fff;">
+          <i class="fa-solid fa-folder-plus" style="margin-right:8px; color:var(--accent-cyan);"></i> Open New Forensic Case Docket
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" onclick="closeNewCaseModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <form method="POST" action="{{ url_for('cases.index') }}">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Case Identifier / Docket Number *</label>
+            <input type="text" name="case_number" class="form-control" placeholder="e.g. TF-2026-0002" required>
+            <small style="color:var(--text-dim); font-size:11px;">Must be unique and permanent for forensic chain-of-custody tracking.</small>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Investigation Title *</label>
+            <input type="text" name="title" class="form-control" placeholder="e.g. Unauthorized Data Exfiltration Analysis" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Assigned Lead Examiner</label>
+            <input type="text" name="investigator_name" class="form-control" value="{{ current_user.full_name if current_user.is_authenticated else '' }}" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Organization / Agency</label>
+            <input type="text" name="organization" class="form-control" value="{{ current_user.organization if current_user.is_authenticated else '' }}" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Case Scope & Preliminary Description</label>
+            <textarea name="description" class="form-control" rows="3" placeholder="Provide background on the incident, authorized search scope, and preliminary findings..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeNewCaseModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Initialize Case</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Slide-Over Forensic Evidence Detail Drawer -->
+  <div class="detail-drawer" id="detail-drawer">
+    <div class="drawer-header">
+      <div style="font-weight: 700; font-size: 14px;" id="drawer-title">Evidence Inspector</div>
+      <button class="btn btn-outline btn-sm" onclick="closeAllDrawers()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="drawer-body" id="drawer-content">
+      <!-- Dynamic forensic content injected here via JS -->
+    </div>
+  </div>
+
+  <!-- Workstation Core Scripts -->
+  <script src="{{ url_for('static', filename='js/forensic.js') }}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

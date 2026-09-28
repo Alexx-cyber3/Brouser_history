@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Forensic Reports - {{ case.case_number }}{% endblock %}
+
+{% block content %}
+<div class="console-hero">
+  <div class="hero-tag"><i class="fa-solid fa-file-shield"></i> FORENSIC REPORT GENERATOR</div>
+  <h1 class="hero-title">Evidentiary Documentation & Legal Exports</h1>
+  <p style="color:var(--text-muted); font-size:13px; margin-top:4px;">
+    Case: <b style="color:#fff;">{{ case.case_number }}</b> • Generate court-ready PDF documents, interactive HTML dossiers, JSON, and CSV.
+  </p>
+</div>
+
+<div style="display:grid; grid-template-columns: 1fr 2fr; gap:20px; align-items:start;">
+  <!-- Left Column: Generate Report Form -->
+  <div class="glass-panel" style="padding:20px;">
+    <div style="font-weight:700; font-size:15px; color:#fff; margin-bottom:16px;">
+      <i class="fa-solid fa-gear" style="color:var(--accent-cyan); margin-right:8px;"></i> Generate Examination Report
+    </div>
+
+    <form method="POST" action="{{ url_for('reports.index', case_id=case.id) }}">
+      <div class="form-group">
+        <label class="form-label">Report Format</label>
+        <select name="format" class="form-control">
+          <option value="pdf">Formal Legal PDF Dossier (.pdf)</option>
+          <option value="html">Interactive Forensic HTML Dossier (.html)</option>
+          <option value="json">Machine-Readable Structured JSON (.json)</option>
+          <option value="csv">Chronological Timeline Spreadsheet (.csv)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Investigator Conclusion / Summary Notes</label>
+        <textarea name="notes" class="form-control" rows="4" placeholder="Enter findings, search parameters, or formal conclusions to include in the executive summary..."></textarea>
+      </div>
+
+      <div style="background:rgba(56, 189, 248, 0.05); padding:10px; border-radius:6px; font-size:11px; color:var(--text-dim); margin-bottom:16px;">
+        <i class="fa-solid fa-lock"></i> All generated documents are automatically hashed with SHA-256 and appended to the Chain of Custody.
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">
+        <i class="fa-solid fa-file-export"></i> Compile Forensic Report
+      </button>
+    </form>
+  </div>
+
+  <!-- Right Column: Generated Reports Archive -->
+  <div class="glass-panel">
+    <div class="glass-header">
+      <span><i class="fa-solid fa-folder-closed" style="color:var(--accent-purple); margin-right:8px;"></i> Generated Reports Ledger ({{ reports | length }})</span>
+    </div>
+    <div class="table-responsive">
+      <table class="forensic-table">
+        <thead>
+          <tr>
+            <th>Format</th>
+            <th>Report Title</th>
+            <th>SHA-256 Hash</th>
+            <th>Examiner</th>
+            <th>Compiled Date</th>
+            <th style="text-align:right;">Download</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in reports %}
+          <tr>
+            <td>
+              <span class="status-pill {% if r.report_format == 'PDF' %}pill-danger{% elif r.report_format == 'HTML' %}pill-info{% elif r.report_format == 'JSON' %}pill-purple{% else %}pill-success{% endif %}">
+                {{ r.report_format }}
+              </span>
+            </td>
+            <td style="font-weight:600; font-size:13px;">{{ r.title }}</td>
+            <td class="mono-cell" style="font-size:10px; color:var(--accent-cyan);">
+              <span title="{{ r.file_hash }}">{{ r.file_hash[:16] }}...{{ r.file_hash[-10:] }}</span>
+            </td>
+            <td>{{ r.generated_by }}</td>
+            <td class="mono-cell" style="font-size:11px;">{{ r.generated_at | format_utc }}</td>
+            <td style="text-align:right;">
+              <a href="{{ url_for('reports.download', report_id=r.id) }}" class="btn btn-outline btn-sm">
+                <i class="fa-solid fa-download"></i> Get {{ r.report_format }}
+              </a>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" style="text-align:center; padding:30px; color:var(--text-dim);">No reports compiled yet for this case.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

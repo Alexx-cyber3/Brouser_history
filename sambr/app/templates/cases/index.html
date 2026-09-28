@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Case Registry{% endblock %}
+
+{% block content %}
+<div class="console-hero">
+  <div class="hero-tag"><i class="fa-solid fa-folder-tree"></i> INVESTIGATION REGISTRY</div>
+  <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:12px;">
+    <div>
+      <h1 class="hero-title">Forensic Case Records</h1>
+      <p style="color:var(--text-muted); font-size:13px; margin-top:4px;">
+        Manage formal forensic investigation dockets, evidence bounds, and custody scopes.
+      </p>
+    </div>
+    <button type="button" class="btn btn-primary" onclick="openNewCaseModal()">
+      <i class="fa-solid fa-plus"></i> Open New Case Docket
+    </button>
+  </div>
+</div>
+
+<div class="glass-panel">
+  <div class="glass-header">
+    <span><i class="fa-solid fa-folder-open" style="margin-right:8px; color:var(--accent-cyan);"></i> Active & Archived Forensic Dockets</span>
+    <span class="status-pill pill-info">{{ cases | length }} Registered Cases</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="forensic-table">
+      <thead>
+        <tr>
+          <th>Case Number</th>
+          <th>Case Title</th>
+          <th>Lead Investigator</th>
+          <th>Status</th>
+          <th>Evidence Sources</th>
+          <th>Artifacts</th>
+          <th>Created Date (UTC)</th>
+          <th style="text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in cases %}
+        <tr>
+          <td class="mono-cell">
+            <a href="{{ url_for('cases.detail', case_id=c.id) }}" style="color:var(--accent-cyan); font-weight:700; text-decoration:none;">
+              {{ c.case_number }}
+            </a>
+            {% if active_case_id == c.id %}
+              <span class="status-pill pill-success" style="margin-left:6px; font-size:9px;">ACTIVE</span>
+            {% endif %}
+          </td>
+          <td style="font-weight:600;">{{ c.title }}</td>
+          <td>{{ c.investigator_name }}</td>
+          <td>
+            <span class="status-pill {% if c.status == 'OPEN' %}pill-info{% elif c.status == 'IN PROGRESS' %}pill-warning{% else %}pill-success{% endif %}">
+              {{ c.status }}
+            </span>
+          </td>
+          <td style="font-family:var(--font-mono);">{{ c.evidence_sources.count() }}</td>
+          <td style="font-family:var(--font-mono);">{{ c.artifacts.count() }}</td>
+          <td style="font-family:var(--font-mono); font-size:12px; color:var(--text-muted);">{{ c.created_at | format_utc }}</td>
+          <td style="text-align:right;">
+            <div style="display:inline-flex; gap:6px;">
+              {% if active_case_id != c.id %}
+              <a href="{{ url_for('cases.select', case_id=c.id) }}" class="btn btn-outline btn-sm" title="Set as Active Investigation">
+                <i class="fa-solid fa-check"></i> Activate
+              </a>
+              {% endif %}
+              <a href="{{ url_for('cases.detail', case_id=c.id) }}" class="btn btn-outline btn-sm">
+                <i class="fa-solid fa-folder-open"></i> Workspace
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" style="text-align:center; padding:40px; color:var(--text-dim);">
+            No forensic cases recorded. Click "Open New Case Docket" above to register your first investigation.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
